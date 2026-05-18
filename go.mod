@@ -4,6 +4,7 @@ module github.com/QuantumNous/new-api
 go 1.25.1
 
 require (
+	gitcode.com/opengauss/openGauss-connector-go-pq v1.0.8
 	github.com/Calcium-Ion/go-epay v0.0.4
 	github.com/abema/go-mp4 v1.4.1
 	github.com/andybalholm/brotli v1.1.1
@@ -58,6 +59,11 @@ require (
 	gorm.io/driver/mysql v1.4.3
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.2
+)
+
+require (
+	github.com/tjfoc/gmsm v1.4.1 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
 
 require (

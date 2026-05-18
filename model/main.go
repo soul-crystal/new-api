@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	_ "gitcode.com/opengauss/openGauss-connector-go-pq"
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
-
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -115,47 +115,77 @@ func CheckSetup() {
 	}
 }
 
-func chooseDB(envName string, isLog bool) (*gorm.DB, error) {
+func chooseDB(envName string, databaseName string, isLog bool) (*gorm.DB, error) {
 	defer func() {
 		initCol()
 	}()
 	dsn := os.Getenv(envName)
+	database := os.Getenv(databaseName)
 	if dsn != "" {
-		if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
-			// Use PostgreSQL
-			common.SysLog("using PostgreSQL as database")
+		if database == "opengauss" {
+			common.SysLog("使用opengauss作为数据库")
+			common.UsingPostgreSQL = true
 			if !isLog {
 				common.UsingPostgreSQL = true
 			} else {
 				common.LogSqlType = common.DatabaseTypePostgreSQL
 			}
-			return gorm.Open(postgres.New(postgres.Config{
-				DSN:                  dsn,
-				PreferSimpleProtocol: true, // disables implicit prepared statement usage
-			}), &gorm.Config{
-				PrepareStmt: true, // precompile SQL
-			})
+			return gorm.Open(postgres.New(postgres.Config{DriverName: "opengauss", DSN: dsn}), &gorm.Config{})
+			//return gorm.Open(gaussdb.Open(dsn), &gorm.Config{})
+			//return gorm.Open(gaussdb.New(gaussdb.Config{
+			//	DriverName: "opengauss",
+			//	DSN:        dsn,
+			//}))
 		}
-		if strings.HasPrefix(dsn, "local") {
-			common.SysLog("SQL_DSN not set, using SQLite as database")
+		if database == "postgres" {
+			if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
+				// Use PostgreSQL
+				common.SysLog("using PostgreSQL as database")
+				if !isLog {
+					common.UsingPostgreSQL = true
+				} else {
+					common.LogSqlType = common.DatabaseTypePostgreSQL
+				}
+				return gorm.Open(postgres.New(postgres.Config{
+					DSN:                  dsn,
+					PreferSimpleProtocol: true, // disables implicit prepared statement usage
+				}), &gorm.Config{
+					PrepareStmt: true, // precompile SQL
+				})
+			}
+		}
+		if database == "kingbase" {
+			if strings.HasPrefix(dsn, "dbname=newapi") {
+				// Use PostgreSQL
+				common.SysLog("using KingBase as database")
+				common.UsingPostgreSQL = true
+				return gorm.Open(postgres.New(postgres.Config{
+					DriverName:           "kingbase",
+					DSN:                  dsn,
+					PreferSimpleProtocol: true,
+				}), &gorm.Config{
+					PrepareStmt: true,
+				})
+			}
+		}
+		if database == "mysql" {
+			common.SysLog("using MySQL as database")
+			// check parseTime
+			if !strings.Contains(dsn, "parseTime") {
+				if strings.Contains(dsn, "?") {
+					dsn += "&parseTime=true"
+				} else {
+					dsn += "?parseTime=true"
+				}
+			}
 			if !isLog {
-				common.UsingSQLite = true
+				common.UsingMySQL = true
 			} else {
-				common.LogSqlType = common.DatabaseTypeSQLite
+				common.LogSqlType = common.DatabaseTypeMySQL
 			}
-			return gorm.Open(sqlite.Open(common.SQLitePath), &gorm.Config{
+			return gorm.Open(mysql.Open(dsn), &gorm.Config{
 				PrepareStmt: true, // precompile SQL
 			})
-		}
-		// Use MySQL
-		common.SysLog("using MySQL as database")
-		// check parseTime
-		if !strings.Contains(dsn, "parseTime") {
-			if strings.Contains(dsn, "?") {
-				dsn += "&parseTime=true"
-			} else {
-				dsn += "?parseTime=true"
-			}
 		}
 		if !isLog {
 			common.UsingMySQL = true
@@ -175,7 +205,7 @@ func chooseDB(envName string, isLog bool) (*gorm.DB, error) {
 }
 
 func InitDB() (err error) {
-	db, err := chooseDB("SQL_DSN", false)
+	db, err := chooseDB("SQL_DSN", "SQL_DB", false)
 	if err == nil {
 		if common.DebugEnabled {
 			db = db.Debug()
@@ -215,7 +245,7 @@ func InitLogDB() (err error) {
 		LOG_DB = DB
 		return
 	}
-	db, err := chooseDB("LOG_SQL_DSN", true)
+	db, err := chooseDB("LOG_SQL_DSN", "LOG_SQL_DB", true)
 	if err == nil {
 		if common.DebugEnabled {
 			db = db.Debug()

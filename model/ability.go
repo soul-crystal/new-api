@@ -10,7 +10,6 @@ import (
 
 	"github.com/samber/lo"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type Ability struct {
@@ -176,7 +175,7 @@ func (channel *Channel) AddAbilities(tx *gorm.DB) error {
 		useDB = tx
 	}
 	for _, chunk := range lo.Chunk(abilities, 50) {
-		err := useDB.Clauses(clause.OnConflict{DoNothing: true}).Create(&chunk).Error
+		err := useDB.Create(&chunk).Error
 		if err != nil {
 			return err
 		}
@@ -242,7 +241,7 @@ func (channel *Channel) UpdateAbilities(tx *gorm.DB) error {
 
 	if len(abilities) > 0 {
 		for _, chunk := range lo.Chunk(abilities, 50) {
-			err = tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&chunk).Error
+			err = tx.Create(&chunk).Error
 			if err != nil {
 				if isNewTx {
 					tx.Rollback()
