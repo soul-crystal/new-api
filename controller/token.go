@@ -304,7 +304,7 @@ func AddToken(c *gin.Context) {
 		return
 	}
 	token := request.Token
-	if len(token.Name) > 50 {
+	if len(token.Name) > 100 {
 		common.ApiErrorT(c, "Token name is too long")
 		return
 	}
@@ -413,7 +413,7 @@ func UpdateToken(c *gin.Context) {
 	if token.Id > 0 {
 		params["id"] = token.Id
 	}
-	if len(token.Name) > 50 {
+	if len(token.Name) > 100 {
 		common.ApiErrorT(c, "Token name is too long")
 		return
 	}

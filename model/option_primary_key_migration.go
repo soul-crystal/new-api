@@ -70,10 +70,10 @@ FROM pg_catalog.pg_constraint AS constraint_meta
 JOIN pg_catalog.pg_attribute AS attribute_meta
   ON attribute_meta.attrelid = constraint_meta.conrelid
  AND attribute_meta.attnum = constraint_meta.conkey[1]
-WHERE constraint_meta.conrelid = to_regclass('options')
+WHERE `+pgTableOidMatch("constraint_meta.conrelid")+`
   AND constraint_meta.contype IN ('p', 'u')
-  AND cardinality(constraint_meta.conkey) = 1
-  AND attribute_meta.attname = 'key'`).Scan(&count).Error; err != nil {
+  AND `+pgSingleColumnConkey("constraint_meta.conkey")+`
+  AND attribute_meta.attname = 'key'`, "options").Scan(&count).Error; err != nil {
 		return false, fmt.Errorf("inspect options constraints: %w", err)
 	}
 	return count > 0, nil

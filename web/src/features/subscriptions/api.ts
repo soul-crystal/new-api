@@ -60,7 +60,9 @@ export async function patchPlanStatus(
   id: number,
   enabled: boolean
 ): Promise<ApiResponse> {
-  const res = await api.patch(`/api/subscription/admin/plans/${id}`, {
+  // POST with an explicit /status path: the generic /update suffix is taken
+  // by updatePlan, and the gateway registers this route as /plans/:id/status.
+  const res = await api.post(`/api/subscription/admin/plans/${id}/status`, {
     enabled,
   })
   return res.data

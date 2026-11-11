@@ -42,7 +42,7 @@ func ClaimExternalIdentityWithTx(tx *gorm.DB, provider, subject string, userId i
 	}
 
 	claim := ExternalIdentityClaim{Provider: provider, Subject: subject, UserId: userId}
-	result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&claim)
+	result := tx.Clauses(ConflictClauses(clause.OnConflict{DoNothing: true})...).Create(&claim)
 	if result.Error != nil {
 		return result.Error
 	}

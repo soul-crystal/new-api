@@ -61,7 +61,7 @@ func lockPasskeyDomainSettings(tx *gorm.DB) (system_setting.PasskeySettings, str
 		{Key: "passkey.rp_id", Value: settings.RPID},
 	}
 	// The first write also acquires SQLite's writer lock before any reads.
-	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rows).Error; err != nil {
+	if err := tx.Clauses(ConflictClauses(clause.OnConflict{DoNothing: true})...).Create(&rows).Error; err != nil {
 		return settings, serverAddress, err
 	}
 	for i := range rows {

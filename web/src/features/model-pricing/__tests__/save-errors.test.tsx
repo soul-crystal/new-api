@@ -93,8 +93,8 @@ it.each([200, 400])(
         }
       }
       if (
-        config.method === 'patch' &&
-        config.url === '/api/option/model_pricing'
+        config.method === 'post' &&
+        config.url === '/api/option/model_pricing/update'
       ) {
         requests.push(config.data)
         const response = {

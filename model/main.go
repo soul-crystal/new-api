@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	_ "gitcode.com/opengauss/openGauss-connector-go-pq"
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 
@@ -147,6 +148,19 @@ func chooseDB(envName string, isLog bool) (*gorm.DB, common.DatabaseType, error)
 			common.SysLog(common.LogText("using ClickHouse as log database"))
 			db, err := gorm.Open(clickhouse.Open(normalizeClickHouseDSN(dsn)), newGormConfig(false))
 			return db, common.DatabaseTypeClickHouse, err
+		}
+		if (isLog && os.Getenv("LOG_SQL_DB") == "opengauss") || (!isLog && os.Getenv("SQL_DB") == "opengauss") {
+			common.SysLog(common.LogText("using openGauss as database"))
+			if !isLog {
+				common.SetUsingOpenGauss(true)
+			}
+			// openGauss 兼容 PostgreSQL 协议，复用 postgres dialector 并指定自定义驱动名
+			db, err := gorm.Open(postgres.New(postgres.Config{
+				DriverName:           "opengauss",
+				DSN:                  dsn,
+				PreferSimpleProtocol: true, // disables implicit prepared statement usage
+			}), newGormConfig(false))
+			return db, common.DatabaseTypePostgreSQL, err
 		}
 		if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
 			// Use PostgreSQL

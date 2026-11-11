@@ -17,6 +17,7 @@ ENV GOEXPERIMENT=greenteagc
 
 WORKDIR /build
 
+ENV GOPROXY=https://goproxy.cn,direct
 ADD go.mod go.sum ./
 # relaykit and tokenkit are local submodules referenced via replace; their
 # go.mod files must be present for go mod download to resolve the main module graph.

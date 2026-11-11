@@ -28,9 +28,9 @@ func inspectConflictingPrefillGroupUniqueness(db *gorm.DB, tableName string) (co
 	if err := db.Raw(`
 SELECT constraint_meta.conname
 FROM pg_catalog.pg_constraint AS constraint_meta
-WHERE constraint_meta.conrelid = to_regclass(?)
+WHERE `+pgTableOidMatch("constraint_meta.conrelid")+`
   AND constraint_meta.contype = 'u'
-  AND cardinality(constraint_meta.conkey) = 1
+  AND `+pgSingleColumnConkey("constraint_meta.conkey")+`
   AND EXISTS (
       SELECT 1
       FROM pg_catalog.pg_attribute AS attribute_meta
@@ -50,7 +50,7 @@ JOIN pg_catalog.pg_class AS index_class
 JOIN pg_catalog.pg_attribute AS attribute_meta
   ON attribute_meta.attrelid = index_meta.indrelid
  AND attribute_meta.attnum = index_meta.indkey[0]
-WHERE index_meta.indrelid = to_regclass(?)
+WHERE `+pgTableOidMatch("index_meta.indrelid")+`
   AND index_meta.indisunique
   AND NOT index_meta.indisprimary
   AND index_meta.indpred IS NULL
@@ -92,7 +92,7 @@ JOIN pg_catalog.pg_class AS index_class
 LEFT JOIN pg_catalog.pg_attribute AS attribute_meta
   ON attribute_meta.attrelid = index_meta.indrelid
  AND attribute_meta.attnum = index_meta.indkey[0]
-WHERE index_meta.indrelid = to_regclass(?)
+WHERE `+pgTableOidMatch("index_meta.indrelid")+`
   AND index_class.relname = ?`, "name", tableName, prefillGroupNameIndex).Scan(&state).Error; err != nil {
 		return prefillGroupNameIndexState{}, fmt.Errorf("inspect prefill group partial unique index: %w", err)
 	}

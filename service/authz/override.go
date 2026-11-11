@@ -60,7 +60,7 @@ func SetUserPermissionsInTx(tx *gorm.DB, userID int, permissions PermissionsMap)
 		for _, policy := range policies {
 			rules = append(rules, newRule("p", []string{UserSubject(userID), policy.Resource, policy.Action, policy.Effect}))
 		}
-		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&rules).Error; err != nil {
+		if err := tx.Clauses(model.ConflictClauses(clause.OnConflict{DoNothing: true})...).Create(&rules).Error; err != nil {
 			return err
 		}
 	}

@@ -698,7 +698,7 @@ func mutateModelPricingOptions(mutate func(*gorm.DB, map[string]map[string]any) 
 				return err
 			}
 			row := Option{Key: key, Value: string(encoded)}
-			if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&row).Error; err != nil {
+			if err := tx.Clauses(ConflictClauses(clause.OnConflict{DoNothing: true})...).Create(&row).Error; err != nil {
 				return err
 			}
 		}

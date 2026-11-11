@@ -43,10 +43,10 @@ func InitPasswordEncryption() error {
 		Slot:          activeLoginEncryptionKeySlot,
 		PrivateKeyPEM: privateKeyPEM,
 	}
-	if err := DB.Clauses(clause.OnConflict{
+	if err := DB.Clauses(ConflictClauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "slot"}},
 		DoNothing: true,
-	}).Create(&candidate).Error; err != nil {
+	})...).Create(&candidate).Error; err != nil {
 		return fmt.Errorf("persist password encryption key: %w", err)
 	}
 

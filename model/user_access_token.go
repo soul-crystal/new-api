@@ -304,8 +304,22 @@ func checkAccessTokenIdentity(tx *gorm.DB, tokenID int, identity AuthSessionIden
 // wins; later starts and other nodes only read it.
 func EnsureLegacyAccessTokenRetireAt(now int64) error {
 	deadline := strconv.FormatInt(now+legacyAccessTokenTransitionDays*24*60*60, 10)
-	if err := DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&Option{Key: legacyAccessTokenRetireAtKey, Value: deadline}).Error; err != nil {
-		return err
+	if common.UsingOpenGauss() {
+		// openGauss lacks the PostgreSQL ON CONFLICT syntax; keep the
+		// first-write-wins contract with an existence check instead.
+		var count int64
+		if err := DB.Model(&Option{}).Where(commonKeyCol+" = ?", legacyAccessTokenRetireAtKey).Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			if err := DB.Create(&Option{Key: legacyAccessTokenRetireAtKey, Value: deadline}).Error; err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := DB.Clauses(ConflictClauses(clause.OnConflict{DoNothing: true})...).Create(&Option{Key: legacyAccessTokenRetireAtKey, Value: deadline}).Error; err != nil {
+			return err
+		}
 	}
 	var option Option
 	if err := DB.Where(&Option{Key: legacyAccessTokenRetireAtKey}).First(&option).Error; err != nil {

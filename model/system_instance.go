@@ -58,7 +58,27 @@ func UpsertSystemInstance(nodeName string, info any, startedAt int64, lastSeenAt
 		LastSeenAt: lastSeenAt,
 		UpdatedAt:  lastSeenAt,
 	}
-	return DB.Clauses(clause.OnConflict{
+	if common.UsingOpenGauss() {
+		// openGauss lacks the PostgreSQL ON CONFLICT syntax, so the upsert is
+		// emulated with update-then-insert; concurrent first reports may still
+		// hit the primary key and are retried as an update on the next heartbeat.
+		result := DB.Model(&SystemInstance{}).
+			Where("node_name = ?", nodeName).
+			Updates(map[string]any{
+				"info":         infoText,
+				"started_at":   startedAt,
+				"last_seen_at": lastSeenAt,
+				"updated_at":   lastSeenAt,
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected > 0 {
+			return nil
+		}
+		return DB.Create(instance).Error
+	}
+	return DB.Clauses(ConflictClauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "node_name"}},
 		DoUpdates: clause.AssignmentColumns([]string{
 			"info",
@@ -66,7 +86,7 @@ func UpsertSystemInstance(nodeName string, info any, startedAt int64, lastSeenAt
 			"last_seen_at",
 			"updated_at",
 		}),
-	}).Create(instance).Error
+	})...).Create(instance).Error
 }
 
 func ListSystemInstances() ([]*SystemInstance, error) {

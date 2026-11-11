@@ -3,6 +3,8 @@ package model
 import (
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -30,7 +32,31 @@ func UpsertPerfMetric(metric *PerfMetric) error {
 	if metric == nil || metric.RequestCount == 0 {
 		return nil
 	}
-	return DB.Clauses(clause.OnConflict{
+	if common.UsingOpenGauss() {
+		// openGauss lacks the PostgreSQL ON CONFLICT syntax; emulate the
+		// aggregation upsert with update-then-insert. A concurrent first
+		// report of the same bucket may still hit the unique key and is
+		// picked up by the next flush.
+		result := DB.Model(&PerfMetric{}).
+			Where("model_name = ? AND "+commonGroupCol+" = ? AND bucket_ts = ?", metric.ModelName, metric.Group, metric.BucketTs).
+			Updates(map[string]any{
+				"request_count":    gorm.Expr("request_count + ?", metric.RequestCount),
+				"success_count":    gorm.Expr("success_count + ?", metric.SuccessCount),
+				"total_latency_ms": gorm.Expr("total_latency_ms + ?", metric.TotalLatencyMs),
+				"ttft_sum_ms":      gorm.Expr("ttft_sum_ms + ?", metric.TtftSumMs),
+				"ttft_count":       gorm.Expr("ttft_count + ?", metric.TtftCount),
+				"output_tokens":    gorm.Expr("output_tokens + ?", metric.OutputTokens),
+				"generation_ms":    gorm.Expr("generation_ms + ?", metric.GenerationMs),
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected > 0 {
+			return nil
+		}
+		return DB.Create(metric).Error
+	}
+	return DB.Clauses(ConflictClauses(clause.OnConflict{
 		Columns: []clause.Column{
 			{Name: "model_name"},
 			{Name: "group"},
@@ -45,7 +71,7 @@ func UpsertPerfMetric(metric *PerfMetric) error {
 			"output_tokens":    gorm.Expr("perf_metrics.output_tokens + ?", metric.OutputTokens),
 			"generation_ms":    gorm.Expr("perf_metrics.generation_ms + ?", metric.GenerationMs),
 		}),
-	}).Create(metric).Error
+	})...).Create(metric).Error
 }
 
 func GetPerfMetrics(modelName string, group string, startTs int64, endTs int64) ([]PerfMetric, error) {

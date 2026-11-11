@@ -624,9 +624,10 @@ export async function deleteOllamaModel(params: {
   channel_id: number
   model_name: string
 }): Promise<{ success: boolean; message?: string }> {
-  const res = await api.delete(
-    '/api/channel/ollama/delete',
-    channelActionConfig({ data: params })
+  const res = await api.post(
+    '/api/channel/ollama/delete-model',
+    params,
+    channelActionConfig()
   )
   return res.data
 }

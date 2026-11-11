@@ -3,6 +3,7 @@ package authz
 import (
 	"fmt"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -18,7 +19,31 @@ func seedBuiltInRoles(db *gorm.DB) error {
 			Enabled:     true,
 			Sort:        spec.Sort,
 		}
-		if err := db.Clauses(clause.OnConflict{
+		if common.UsingOpenGauss() {
+			// openGauss lacks the PostgreSQL ON CONFLICT syntax; emulate the
+			// seed upsert with update-then-insert so repeated startups stay
+			// idempotent.
+			result := db.Model(&model.AuthzRole{}).
+				Where(&model.AuthzRole{Key: spec.Key}).
+				Updates(map[string]any{
+					"name":        spec.Name,
+					"description": spec.Description,
+					"built_in":    spec.BuiltIn,
+					"enabled":     true,
+					"sort":        spec.Sort,
+				})
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected > 0 {
+				continue
+			}
+			if err := db.Create(&role).Error; err != nil {
+				return err
+			}
+			continue
+		}
+		if err := db.Clauses(model.ConflictClauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "key"}},
 			DoUpdates: clause.AssignmentColumns([]string{
 				"name",
@@ -27,7 +52,7 @@ func seedBuiltInRoles(db *gorm.DB) error {
 				"enabled",
 				"sort",
 			}),
-		}).Create(&role).Error; err != nil {
+		})...).Create(&role).Error; err != nil {
 			return err
 		}
 	}

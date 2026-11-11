@@ -29,7 +29,7 @@ func metadataTransaction(change func(*gorm.DB) error) error {
 
 func lockMetadataMutation(tx *gorm.DB) error {
 	anchor := Option{Key: "metadata_sync_lock", Value: ""}
-	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&anchor).Error; err != nil {
+	if err := tx.Clauses(ConflictClauses(clause.OnConflict{DoNothing: true})...).Create(&anchor).Error; err != nil {
 		return err
 	}
 	return lockForUpdate(tx).Where(commonKeyCol+" = ?", anchor.Key).First(&anchor).Error

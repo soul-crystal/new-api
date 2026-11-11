@@ -144,7 +144,34 @@ api.interceptors.response.use(
   }
 )
 
+// rewriteBlockedWriteMethod maps console PUT/PATCH/DELETE calls onto POST
+// routes with an /update or /delete path suffix. The deployment firewall only
+// forwards GET/POST, while the gateway registers every write route as POST;
+// callers keep declaring the REST methods. Only /api console URLs are
+// rewritten, so relay or external URLs pass through untouched.
+export function rewriteBlockedWriteMethod(
+  url: string | undefined,
+  method: string | undefined
+): { url?: string; method?: string } {
+  if (
+    (method !== 'put' && method !== 'patch' && method !== 'delete') ||
+    typeof url !== 'string' ||
+    !/^\/api(\/|$)/.test(url)
+  ) {
+    return { url, method }
+  }
+  const suffix = method === 'delete' ? '/delete' : '/update'
+  const [path, query] = url.split('?')
+  return {
+    url: `${path.replace(/\/+$/, '')}${suffix}${query ? `?${query}` : ''}`,
+    method: 'post',
+  }
+}
+
 api.interceptors.request.use(async (config) => {
+  const rewritten = rewriteBlockedWriteMethod(config.url, config.method)
+  config.url = rewritten.url
+  config.method = rewritten.method
   if (config.singleUseAuthorization || config.headers.has('X-Security-Proof')) {
     // Refresh before spending a proof/flow, never by replaying its request.
     config.skipAuthRefresh = true

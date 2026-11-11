@@ -35,9 +35,9 @@ SELECT constraint_meta.conname AS constraint_name,
        constraint_meta.condeferrable AS is_deferrable,
        constraint_meta.convalidated AS is_validated
 FROM pg_catalog.pg_constraint AS constraint_meta
-WHERE constraint_meta.conrelid = to_regclass(?)
+WHERE `+pgTableOidMatch("constraint_meta.conrelid")+`
   AND constraint_meta.contype = 'u'
-  AND cardinality(constraint_meta.conkey) = 1
+  AND `+pgSingleColumnConkey("constraint_meta.conkey")+`
   AND EXISTS (
       SELECT 1
       FROM pg_catalog.pg_attribute AS attribute_meta
@@ -112,7 +112,7 @@ JOIN pg_catalog.pg_class AS index_class
 LEFT JOIN pg_catalog.pg_attribute AS attribute_meta
   ON attribute_meta.attrelid = index_meta.indrelid
  AND attribute_meta.attnum = index_meta.indkey[0]
-WHERE index_meta.indrelid = to_regclass(?)
+WHERE `+pgTableOidMatch("index_meta.indrelid")+`
   AND index_class.relname = ?`, "key", "key", tableName, tokenKeyIndex).Scan(&state).Error; err != nil {
 		return tokenKeyIndexState{}, fmt.Errorf("inspect token key unique index: %w", err)
 	}

@@ -43,6 +43,19 @@ func UsingLogDatabase(databaseType DatabaseType) bool {
 	return logDatabaseType == databaseType
 }
 
+// usingOpenGauss reports whether the primary database uses the openGauss
+// driver. openGauss speaks the PostgreSQL protocol but does not support the
+// PostgreSQL ON CONFLICT syntax, so query builders branch on this flag.
+var usingOpenGauss bool
+
+func UsingOpenGauss() bool {
+	return usingOpenGauss
+}
+
+func SetUsingOpenGauss(using bool) {
+	usingOpenGauss = using
+}
+
 // SQLitePath is the DSN for the default SQLite database. It uses WAL journal
 // mode so readers are never blocked by the single writer, plus a 30s busy
 // timeout for writers to queue.

@@ -85,7 +85,7 @@ func (a *gormAdapter) AddPolicy(_ string, ptype string, rule []string) error {
 	if count > 0 {
 		return nil
 	}
-	return a.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&casbinRule).Error
+	return a.db.Clauses(model.ConflictClauses(clause.OnConflict{DoNothing: true})...).Create(&casbinRule).Error
 }
 
 func (a *gormAdapter) RemovePolicy(_ string, ptype string, rule []string) error {

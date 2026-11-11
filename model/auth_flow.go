@@ -198,10 +198,10 @@ func ClaimExternalAuthAssertionWithTx(tx *gorm.DB, purpose, assertion string, ex
 		ExpiresAt:  expiresAt,
 		ConsumedAt: &now,
 	}
-	result := tx.Clauses(clause.OnConflict{
+	result := tx.Clauses(ConflictClauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "token_hash"}},
 		DoNothing: true,
-	}).Create(&flow)
+	})...).Create(&flow)
 	if result.Error != nil {
 		return result.Error
 	}
