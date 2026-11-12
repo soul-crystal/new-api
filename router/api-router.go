@@ -278,6 +278,15 @@ func SetApiRouter(router *gin.Engine) {
 			taskPluginRoute.POST("/:key/versions/:version/delete", controller.DeleteTaskPluginVersion)
 		}
 		handlePermissionRoute(apiRouter.Group("", middleware.AdminAuth()), http.MethodGet, "/task_plugin_options", authz.TaskPluginBind, controller.GetTaskPluginOptions)
+		// Channel editors read the instances to bind them; changing them is
+		// plugin management, as installing a plugin is.
+		handlePermissionRoute(apiRouter.Group("", middleware.AdminAuth()), http.MethodGet, "/request_plugin/instances", authz.TaskPluginBind, controller.GetRequestPluginInstances)
+		requestPluginRoute := apiRouter.Group("/request_plugin")
+		requestPluginRoute.Use(middleware.RootAuth())
+		{
+			requestPluginRoute.POST("/instances/update", controller.UpdateRequestPluginInstances)
+			requestPluginRoute.POST("/dry_run", controller.DryRunRequestPlugins)
+		}
 		registerChannelRoutes(apiRouter)
 		registerAuthzRoutes(apiRouter)
 		tokenRoute := apiRouter.Group("/token")
@@ -344,6 +353,7 @@ func SetApiRouter(router *gin.Engine) {
 		systemInfoRoute.Use(middleware.RootAuth())
 		{
 			systemInfoRoute.GET("/instances", controller.ListSystemInstances)
+			systemInfoRoute.GET("/sync", controller.GetNodeSync)
 			systemInfoRoute.POST("/stale-instances/delete", controller.DeleteStaleSystemInstances)
 			systemInfoRoute.POST("/instances/:node_name/delete", controller.DeleteStaleSystemInstance)
 		}

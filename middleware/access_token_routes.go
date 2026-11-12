@@ -187,6 +187,7 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	"GET /api/system-task/current":                      accessTokenScopeRule("ops:read"),
 	"GET /api/system-task/:task_id":                     accessTokenScopeRule("ops:read"),
 	"GET /api/system-info/instances":                    accessTokenScopeRule("ops:read"),
+	"GET /api/system-info/sync":                         accessTokenScopeRule("ops:read"),
 	"POST /api/system-info/stale-instances/delete":      accessTokenScopeRule("ops:write"),
 	"POST /api/system-info/instances/:node_name/delete": accessTokenScopeRule("ops:write"),
 
@@ -204,6 +205,9 @@ var accessTokenRouteRules = map[string]accessTokenRouteRule{
 	"POST /api/plugin/task/:key/status":                   accessTokenScopeRule("plugin:write"),
 	"POST /api/plugin/task/:key/dryrun":                   accessTokenScopeRule("plugin:write"),
 	"POST /api/plugin/task/:key/versions/:version/delete": accessTokenScopeRule("plugin:write"),
+	// router/api-router.go: /api/request_plugin
+	"POST /api/request_plugin/instances/update": accessTokenScopeRule("plugin:write"),
+	"POST /api/request_plugin/dry_run":          accessTokenScopeRule("plugin:write"),
 
 	// router/channel-router.go: the key route is RootAuth, not Casbin-guarded.
 	"POST /api/channel/:id/key": accessTokenScopeRule(service.AccessTokenScopeOf(authz.ChannelSecretView)),
