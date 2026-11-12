@@ -143,7 +143,7 @@ func addSensitiveWordInstance(tx *gorm.DB, name, words string, enabled bool) err
 	}
 	option.Key = request_plugin_setting.InstancesOption
 	option.Value = string(encoded)
-	if err := tx.Save(&option).Error; err != nil {
+	if err := saveOption(tx, &option); err != nil {
 		return fmt.Errorf("write option %s: %w", request_plugin_setting.InstancesOption, err)
 	}
 	return nil

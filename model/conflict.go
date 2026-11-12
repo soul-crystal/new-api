@@ -2,6 +2,7 @@ package model
 
 import (
 	"github.com/QuantumNous/new-api/common"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -19,4 +20,24 @@ func ConflictClauses(onConflict clause.OnConflict) []clause.Expression {
 		return nil
 	}
 	return []clause.Expression{onConflict}
+}
+
+// saveOption writes an Option row with upsert semantics on every database.
+// GORM's Save falls back to INSERT ... ON CONFLICT when its UPDATE matches
+// no rows, which openGauss does not support, so there the write runs as an
+// explicit update-then-insert keyed on the option key.
+func saveOption(tx *gorm.DB, option *Option) error {
+	if common.UsingOpenGauss() {
+		result := tx.Model(&Option{}).
+			Where(commonKeyCol+" = ?", option.Key).
+			Updates(map[string]any{"value": option.Value})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected > 0 {
+			return nil
+		}
+		return tx.Create(option).Error
+	}
+	return tx.Save(option).Error
 }

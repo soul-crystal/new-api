@@ -92,7 +92,7 @@ func migrateLegacyOption(sourceKey, targetKey string, transform legacyOptionTran
 			target = Option{Key: targetKey}
 		}
 		target.Value = value
-		if err := tx.Save(&target).Error; err != nil {
+		if err := saveOption(tx, &target); err != nil {
 			return fmt.Errorf("write target option %s: %w", targetKey, err)
 		}
 		if err := tx.Delete(&source).Error; err != nil {
@@ -228,7 +228,7 @@ func migrateLegacyUptimeOptions() error {
 			target = Option{Key: "console_setting.uptime_kuma_groups"}
 		}
 		target.Value = value
-		if err := tx.Save(&target).Error; err != nil {
+		if err := saveOption(tx, &target); err != nil {
 			return fmt.Errorf("write target option console_setting.uptime_kuma_groups: %w", err)
 		}
 		if err := tx.Delete(&urlOption).Error; err != nil {

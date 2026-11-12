@@ -228,7 +228,7 @@ func UpdatePasskeyDomainOptions(values map[string]string, preview bool, confirma
 		values["ServerAddress"] = serverAddress
 		keys := slices.Sorted(maps.Keys(values))
 		for _, key := range keys {
-			if err := tx.Save(&Option{Key: key, Value: values[key]}).Error; err != nil {
+			if err := saveOption(tx, &Option{Key: key, Value: values[key]}); err != nil {
 				return err
 			}
 		}
